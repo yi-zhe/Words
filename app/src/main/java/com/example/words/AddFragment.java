@@ -16,6 +16,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 
 
 /**
@@ -62,10 +64,10 @@ public class AddFragment extends Fragment {
                 }
                 Word word = new Word(english, meaning);
                 wordViewModel.insertWords(word);
-                vEnglish.setText("");
-                vMeaning.setText("");
-                Toast.makeText(activity, "添加成功", Toast.LENGTH_SHORT).show();
-                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                NavController navController = Navigation.findNavController(v);
+                navController.navigateUp();
+                InputMethodManager imm = (InputMethodManager) requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(v.getWindowToken(),0);
             }
         });
     }

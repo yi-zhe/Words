@@ -21,6 +21,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -58,6 +59,19 @@ public class WordsFragment extends Fragment {
         wordViewModel = new ViewModelProvider(this).get(WordViewModel.class);
         vWords = requireActivity().findViewById(R.id.words);
         vWords.setLayoutManager(new LinearLayoutManager(requireActivity()));
+        vWords.setItemAnimator(new DefaultItemAnimator() {
+            @Override
+            public void onAnimationFinished(@NonNull RecyclerView.ViewHolder viewHolder) {
+                super.onAnimationFinished(viewHolder);
+                LinearLayoutManager manager = (LinearLayoutManager) vWords.getLayoutManager();
+                int first = manager.findFirstVisibleItemPosition();
+                int last = manager.findLastVisibleItemPosition();
+                for (int i = first; i <= last; i++) {
+                    MyAdapter.MyViewHolder holder = (MyAdapter.MyViewHolder) vWords.findViewHolderForAdapterPosition(i);
+                    holder.textViewNumber.setText(String.valueOf(i + 1));
+                }
+            }
+        });
         myAdapter1 = new MyAdapter(false, wordViewModel);
         myAdapter2 = new MyAdapter(true, wordViewModel);
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences(VIEW_TYPE, Context.MODE_PRIVATE);
@@ -72,11 +86,10 @@ public class WordsFragment extends Fragment {
             @Override
             public void onChanged(List<Word> words) {
                 int temp = myAdapter1.getItemCount();
-                myAdapter1.setAllWords(words);
-                myAdapter2.setAllWords(words);
                 if (temp != words.size()) {
-                    myAdapter1.notifyDataSetChanged();
-                    myAdapter2.notifyDataSetChanged();
+                    vWords.smoothScrollBy(0, -200);
+                    myAdapter1.submitList(words);
+                    myAdapter2.submitList(words);
                 }
             }
         });
@@ -110,11 +123,9 @@ public class WordsFragment extends Fragment {
                     @Override
                     public void onChanged(List<Word> words) {
                         int temp = myAdapter1.getItemCount();
-                        myAdapter1.setAllWords(words);
-                        myAdapter2.setAllWords(words);
                         if (temp != words.size()) {
-                            myAdapter1.notifyDataSetChanged();
-                            myAdapter2.notifyDataSetChanged();
+                            myAdapter1.submitList(words);
+                            myAdapter2.submitList(words);
                         }
                     }
                 });
