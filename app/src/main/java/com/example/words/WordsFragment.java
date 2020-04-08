@@ -82,7 +82,7 @@ public class WordsFragment extends Fragment {
             vWords.setAdapter(myAdapter1);
         }
         filteredWords = wordViewModel.getAllWordsLive();
-        filteredWords.observe(requireActivity(), new Observer<List<Word>>() {
+        filteredWords.observe(getViewLifecycleOwner(), new Observer<List<Word>>() {
             @Override
             public void onChanged(List<Word> words) {
                 int temp = myAdapter1.getItemCount();
@@ -119,7 +119,7 @@ public class WordsFragment extends Fragment {
             public boolean onQueryTextChange(String newText) {
                 filteredWords = wordViewModel.findWordsWithPattern(newText.trim());
                 filteredWords.removeObservers(requireActivity());
-                filteredWords.observe(requireActivity(), new Observer<List<Word>>() {
+                filteredWords.observe(getViewLifecycleOwner(), new Observer<List<Word>>() {
                     @Override
                     public void onChanged(List<Word> words) {
                         int temp = myAdapter1.getItemCount();
