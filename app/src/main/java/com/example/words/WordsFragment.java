@@ -22,10 +22,13 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
 
@@ -40,8 +43,11 @@ public class WordsFragment extends Fragment {
     private MyAdapter myAdapter1, myAdapter2;
     private FloatingActionButton vAdd;
     private LiveData<List<Word>> filteredWords;
+    private List<Word> allWords;
     private static final String VIEW_TYPE = "view_type";
     private static final String IS_USING_CARD = "using_card";
+    private boolean undoAction;
+    private DividerItemDecoration dividerItemDecoration;
 
     public WordsFragment() {
         setHasOptionsMenu(true);
@@ -74,25 +80,56 @@ public class WordsFragment extends Fragment {
         });
         myAdapter1 = new MyAdapter(false, wordViewModel);
         myAdapter2 = new MyAdapter(true, wordViewModel);
+
+        dividerItemDecoration = new DividerItemDecoration(requireActivity(), DividerItemDecoration.VERTICAL);
+
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences(VIEW_TYPE, Context.MODE_PRIVATE);
         boolean viewType = sharedPreferences.getBoolean(IS_USING_CARD, false);
         if (viewType) {
             vWords.setAdapter(myAdapter2);
         } else {
             vWords.setAdapter(myAdapter1);
+            vWords.addItemDecoration(dividerItemDecoration);
         }
         filteredWords = wordViewModel.getAllWordsLive();
         filteredWords.observe(getViewLifecycleOwner(), new Observer<List<Word>>() {
             @Override
             public void onChanged(List<Word> words) {
+                allWords = words;
                 int temp = myAdapter1.getItemCount();
                 if (temp != words.size()) {
-                    vWords.smoothScrollBy(0, -200);
+                    if (temp < words.size() && !undoAction) {
+                        vWords.smoothScrollBy(0, -200);
+                    }
+                    undoAction = false;
                     myAdapter1.submitList(words);
                     myAdapter2.submitList(words);
                 }
             }
         });
+
+        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.START) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                final Word wordToDelete = filteredWords.getValue().get(viewHolder.getAdapterPosition());
+                wordViewModel.deleteWords(wordToDelete);
+                Snackbar.make(requireActivity().findViewById(R.id.wordsFragmentView),
+                        "删除了一个单词", Snackbar.LENGTH_SHORT)
+                        .setAction("撤销", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                wordViewModel.insertWords(wordToDelete);
+                                undoAction = true;
+                            }
+                        }).show();
+            }
+        }).attachToRecyclerView(vWords);
+
         vAdd = requireActivity().findViewById(R.id.floatingActionButton);
         vAdd.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,6 +159,7 @@ public class WordsFragment extends Fragment {
                 filteredWords.observe(getViewLifecycleOwner(), new Observer<List<Word>>() {
                     @Override
                     public void onChanged(List<Word> words) {
+                        allWords = words;
                         int temp = myAdapter1.getItemCount();
                         if (temp != words.size()) {
                             myAdapter1.submitList(words);
@@ -160,9 +198,11 @@ public class WordsFragment extends Fragment {
                 SharedPreferences.Editor editor = sharedPreferences.edit();
                 if (viewType) {
                     vWords.setAdapter(myAdapter1);
+                    vWords.addItemDecoration(dividerItemDecoration);
                     editor.putBoolean(IS_USING_CARD, false);
                 } else {
                     vWords.setAdapter(myAdapter2);
+                    vWords.removeItemDecoration(dividerItemDecoration);
                     editor.putBoolean(IS_USING_CARD, true);
                 }
                 editor.apply();
